@@ -41,6 +41,15 @@ export class NormalizedWebtoon {
 
   @Column('simple-array')
   authors: string[];
+
+  @Column({ nullable: true })
+  synopsis?: string;
+
+  @Column('simple-array', { nullable: true })
+  genres?: string[];
+
+  @Column('simple-array', { nullable: true })
+  tags?: string[];
 }
 
 @Entity()

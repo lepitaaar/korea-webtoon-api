@@ -11,7 +11,6 @@ export const getWebtoonList = async () => {
 
   while (!isEndPage) {
     const res = await getStaticLandingGenreSection(page);
-
     const { isEnd, groups } = res.data.data.staticLandingGenreSection;
 
     const [{ items }] = groups;

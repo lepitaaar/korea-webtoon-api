@@ -9,12 +9,13 @@ import { ROUTES } from './constants';
 import { getHealthCheck } from './routes/health-check';
 import { getWebtoons } from './routes/webtoons';
 import cors from 'cors';
+import { getWebtoonInfo } from './routes/webtoon';
 
 const app = express();
 
 app.use(cors());
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4712;
 
 (async () => {
   await AppDataSource.initialize();
@@ -45,6 +46,8 @@ const PORT = process.env.PORT || 3000;
   app.get(ROUTES.HEALTH_CHECK, getHealthCheck);
 
   app.get(ROUTES.GET_WEBTOONS, getWebtoons);
+
+  app.get(ROUTES.GET_WEBTOON_INFO, getWebtoonInfo)
 
   app.get('/', (_, res) => res.redirect(ROUTES.SWAGGER));
 })();

@@ -33,18 +33,18 @@ export const createUpdateMethod =
       ? new Date().getTime() - updateStartAt.getTime() > SIX_HOURS
       : true;
 
-    if (updateStartAt && !isOld) {
-      if (!dataInfo) {
-        return res.status(500);
-      }
+    // if (updateStartAt && !isOld) {
+    //   if (!dataInfo) {
+    //     return res.status(500);
+    //   }
 
-      return res.json({
-        ...dataInfo,
-        updateRunningTime: dataInfo.updateEndAt
-          ? (dataInfo.updateEndAt.getTime() - updateStartAt.getTime()) / 1_000
-          : (new Date().getTime() - updateStartAt.getTime()) / 1_000,
-      });
-    }
+    //   return res.json({
+    //     ...dataInfo,
+    //     updateRunningTime: dataInfo.updateEndAt
+    //       ? (dataInfo.updateEndAt.getTime() - updateStartAt.getTime()) / 1_000
+    //       : (new Date().getTime() - updateStartAt.getTime()) / 1_000,
+    //   });
+    // }
 
     const updatingDataInfo = {
       ...dataInfo,

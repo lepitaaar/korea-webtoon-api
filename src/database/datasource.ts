@@ -9,7 +9,7 @@ import {
 } from './entity';
 
 export const AppDataSource = new DataSource({
-  type: 'sqlite',
+  type: 'better-sqlite3',
   database: 'database.sqlite',
   entities: [
     NaverWebtoon,

@@ -5,6 +5,7 @@ import {
   getweeklyWebtoonList,
 } from './functions/naverApi';
 import { normalizeWebtoon } from './functions/normalizeWebtoon';
+import { getWebtoonDetail } from './functions/naverApi';
 
 enum Weekday {
   MONDAY = 'MON',
@@ -15,6 +16,9 @@ enum Weekday {
   SATURDAY = 'SAT',
   SUNDAY = 'SUN',
 }
+
+const LIMIT_QUEUE = 50;
+let queue = 0;
 
 export const getNaverWebtoonList = async () => {
   const weeklyWebtoonMap = new Map<number, NormalizedWebtoon>();
@@ -27,7 +31,7 @@ export const getNaverWebtoonList = async () => {
     const _weekday = weekday as keyof typeof weeklyWebtoonTitleMap;
     const weekdayWebtoonList = weeklyWebtoonTitleMap[_weekday];
 
-    weekdayWebtoonList.forEach(({ titleId, ...webtoon }) => {
+    for (const { titleId, ...webtoon } of weekdayWebtoonList) {
       const duplicatedWebtoon = weeklyWebtoonMap.get(titleId);
 
       //! 각 요일에 중복된 웹툰이 노출될수 있음
@@ -37,14 +41,26 @@ export const getNaverWebtoonList = async () => {
 
       const updateDay = Weekday[_weekday];
 
-      return weeklyWebtoonMap.set(titleId, {
+      if (queue > LIMIT_QUEUE) {
+        await new Promise<void>((resolve) =>
+          setInterval(() => {
+            if (queue <= LIMIT_QUEUE) resolve();
+          }, 1_000),
+        );
+      }
+      queue += 1;
+      const extra = await getWebtoonDetail(titleId);
+      queue -= 1;
+
+      weeklyWebtoonMap.set(titleId, {
         ...normalizeWebtoon({
           ...webtoon,
           titleId,
+          ...extra
         }),
         updateDays: [updateDay],
       });
-    });
+    }
   }
 
   const weeklyWebtoonList = Array.from(weeklyWebtoonMap.values());
@@ -53,11 +69,24 @@ export const getNaverWebtoonList = async () => {
     data: { titleList: dailyPlusWebtoonTitleList },
   } = await getDailyPlusWebtoonList();
 
-  const dailyPlusWebtoonList: NormalizedWebtoon[] =
-    dailyPlusWebtoonTitleList.map((webtoon) => ({
-      ...normalizeWebtoon(webtoon),
-      updateDays: [],
-    }));
+  const dailyPlusWebtoonList: NormalizedWebtoon[] = await Promise.all(
+    dailyPlusWebtoonTitleList.map(async (webtoon) => {
+      if (queue > LIMIT_QUEUE) {
+        await new Promise<void>((resolve) =>
+          setInterval(() => {
+            if (queue <= LIMIT_QUEUE) resolve();
+          }, 1_000),
+        );
+      }
+      queue += 1;
+      const extra = await getWebtoonDetail(webtoon.titleId);
+      queue -= 1;
+      return {
+        ...normalizeWebtoon({ ...webtoon, ...extra }),
+        updateDays: [],
+      };
+    })
+  );
 
   const finishedWebtoonList: NormalizedWebtoon[] = [];
 
@@ -68,12 +97,25 @@ export const getNaverWebtoonList = async () => {
 
     totalPages = pageInfo.totalPages;
 
-    finishedWebtoonList.push(
-      ...titleList.map((webtoon) => ({
-        ...normalizeWebtoon(webtoon),
-        updateDays: [],
-      })),
+    const finished = await Promise.all(
+      titleList.map(async (webtoon) => {
+        if (queue > LIMIT_QUEUE) {
+          await new Promise<void>((resolve) =>
+            setInterval(() => {
+              if (queue <= LIMIT_QUEUE) resolve();
+            }, 1_000),
+          );
+        }
+        queue += 1;
+        const extra = await getWebtoonDetail(webtoon.titleId);
+        queue -= 1;
+        return {
+          ...normalizeWebtoon({ ...webtoon, ...extra }),
+          updateDays: [],
+        };
+      })
     );
+    finishedWebtoonList.push(...finished);
   }
 
   return weeklyWebtoonList.concat(dailyPlusWebtoonList, finishedWebtoonList);

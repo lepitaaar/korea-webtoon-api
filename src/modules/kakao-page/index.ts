@@ -1,6 +1,9 @@
 import type { NormalizedWebtoon, UpdateDay } from '@/database/entity';
 import { getWebtoonList } from './functions/getWebtoonList';
-import { getContentHomeOverview } from './functions/kakaoPageApi';
+import {
+  getContentHomeInfo,
+  getContentHomeOverview,
+} from './functions/kakaoPageApi';
 
 enum Weekday {
   월 = 'MON',
@@ -12,13 +15,12 @@ enum Weekday {
   일 = 'SUN',
 }
 
-const LIMIT_QUEUE = 100;
+const LIMIT_QUEUE = 1000;
 
 export const getKakaoPageWebtoonList = async (): Promise<
   NormalizedWebtoon[]
 > => {
   const webtoonList = await getWebtoonList();
-
   //! 요청 제한을 위한 큐, 카카오 페이지는 동시 요청 횟수 제한이 있는듯
 
   let queue = 0;
@@ -36,6 +38,9 @@ export const getKakaoPageWebtoonList = async (): Promise<
 
       const { content } = (await getContentHomeOverview(seriesId)).data.data
         .contentHomeOverview;
+
+      const { about } = (await getContentHomeInfo(seriesId)).data.data
+        .contentHomeInfo;
 
       const updateDays: UpdateDay[] = [];
 
@@ -70,6 +75,9 @@ export const getKakaoPageWebtoonList = async (): Promise<
         isEnd: content.onIssue === 'End',
         isFree: content.bm !== 'Pay',
         authors: content.authors.split(','),
+        synopsis: about.description,
+        genres: [content.subcategory],
+        tags: about.themeKeywordList.map((item) => item.title),
       };
     }),
   );

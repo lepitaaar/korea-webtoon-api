@@ -5,4 +5,5 @@ export enum ROUTES {
   UPDATE_KAKAO_PAGE = '/update/kakao-page',
   HEALTH_CHECK = '/health-check',
   GET_WEBTOONS = '/webtoons',
+  GET_WEBTOON_INFO = '/webtoon/:id'
 }
