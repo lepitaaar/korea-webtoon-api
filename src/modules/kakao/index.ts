@@ -3,6 +3,7 @@ import {
   KAKAO_PLACEMENT,
   getTicketInfo,
   getWebtoonListByPlacement,
+  getWebtoonProfile,
 } from './functions/kakaoApi';
 import {
   TempNormalizedWebtoon,
@@ -64,39 +65,38 @@ export const getKakaoWebtoonList = async () => {
       return [...weeklyWebtoonList, ...finishedWebtoon];
     });
 
-  let queue = 0;
+  const pLimit = (await import('p-limit')).default;
+  const limit = pLimit(LIMIT_QUEUE);
 
   const normalizedWebtoonList: NormalizedWebtoon[] = await Promise.all(
     tempNormalizedWebtoonList.map(
-      async ({ freeWaitHour, id: kakaoWebtoonId, ...webtoon }) => {
-        const id = `kakao_${kakaoWebtoonId}`;
+      ({ freeWaitHour, id: kakaoWebtoonId, ...webtoon }) =>
+        limit(async () => {
+          const id = `kakao_${kakaoWebtoonId}`;
 
-        if (freeWaitHour !== undefined)
-          return { id, ...webtoon, freeWaitHour, isFree: true };
+          if (freeWaitHour !== undefined)
+            return { id, ...webtoon, freeWaitHour, isFree: true };
 
-        //! 요청 제한을 위한 큐, 카카오 동시 요청 제한 회피
-        if (queue > LIMIT_QUEUE) {
-          await new Promise<void>((resolve) =>
-            setInterval(() => {
-              if (queue <= LIMIT_QUEUE) resolve();
-            }, 1_000),
+          const { data } = await getTicketInfo(kakaoWebtoonId);
+
+          const { data: profileData } = (
+            await getWebtoonProfile(kakaoWebtoonId)
+          ).data;
+
+          const waitInterval = data.data.waitForFree?.interval.replace(
+            /\D/g,
+            '',
           );
-        }
-        queue += 1;
 
-        const { data } = await getTicketInfo(kakaoWebtoonId);
-
-        queue -= 1;
-
-        const waitInterval = data.data.waitForFree?.interval.replace(/\D/g, '');
-
-        return {
-          ...webtoon,
-          id,
-          isFree: !!waitInterval,
-          freeWaitHour: waitInterval ? Number(waitInterval) : null,
-        };
-      },
+          return {
+            ...webtoon,
+            id,
+            isFree: !!waitInterval,
+            freeWaitHour: waitInterval ? Number(waitInterval) : null,
+            tags: profileData.seoKeywords,
+            synopsis: profileData.synopsis,
+          };
+        }),
     ),
   );
 

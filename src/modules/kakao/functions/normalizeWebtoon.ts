@@ -19,6 +19,18 @@ export interface TempNormalizedWebtoon
   id: number;
 }
 
+const genreMapping = new Map([
+  ['rank_all', '실시간 랭킹'],
+  ['rank_fantasy_drama', '판타지 드라마'],
+  ['rank_romance', '로맨스'],
+  ['rank_school_action_fantasy', '학원/판타지'],
+  ['rank_romance_fantasy', '로맨스 판타지'],
+  ['rank_action_wuxia', '액션/무협'],
+  ['rank_drama', '드라마'],
+  ['rank_horror_thriller', '공포/스릴러'],
+  ['rank_comic_everyday_life', '코믹/일상'],
+]);
+
 //! 카카오 웹툰은 동일한 형식으로 한번에 대량의 웹툰 정보를 응답함
 export const normalizeWebtoonList = ({
   response,
@@ -31,7 +43,7 @@ export const normalizeWebtoonList = ({
     },
   ] = response.data;
 
-  return cards.map(({ content }) => {
+  return cards.map(({ content, genreFilters }) => {
     const authors = content.authors
       .filter(({ type }) => {
         switch (type) {
@@ -83,6 +95,7 @@ export const normalizeWebtoonList = ({
         `${content.backgroundImage}.jpg`,
       ],
       provider: 'KAKAO',
+      genres: genreFilters.map((genre) => genreMapping[genre] || genre),
     };
   });
 };

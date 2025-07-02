@@ -46,11 +46,11 @@ interface KakaoWebtoonCard {
       name: string;
       type: 'AUTHOR' | 'ILLUSTRATOR' | 'PUBLISHER';
     }[];
-
     featuredCharacterImageA: string;
     featuredCharacterImageB: string;
     backgroundImage: string;
   };
+  genreFilters: string[];
 }
 
 export interface GetWebtoonListByPlacementResponse {
@@ -94,5 +94,19 @@ export const getTicketInfo = (id: number) => {
         'Accept-Language': 'ko',
       },
     },
+  );
+};
+
+interface WebtoonProfile {
+  data: {
+    synopsis: string;
+    seoKeywords: string[];
+  };
+}
+
+export const getWebtoonProfile = (id: number) => {
+  console.info(`⌛️ [KAKAO] id: ${id} - 웹툰 프로필 정보 요청`);
+  return kakaoApi.get<WebtoonProfile>(
+    `/decorator/v2/decorator/contents/${id}/profile`,
   );
 };
