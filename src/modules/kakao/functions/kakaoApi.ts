@@ -9,6 +9,9 @@ const kakaoApi = axios.create({
 axiosRetry(kakaoApi, {
   retries: 3,
   retryDelay: (retryCount) => retryCount * 3_000,
+  retryCondition: (error) => {
+    return true;
+  },
   onRetry: (retry, _, config) => {
     console.error(`🚧 [KAKAO] ${config.url} - retry: ${retry}`);
   },
