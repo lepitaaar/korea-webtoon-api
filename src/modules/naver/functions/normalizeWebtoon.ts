@@ -11,17 +11,11 @@ export const normalizeWebtoon = ({
   synopsis?: string;
   genres?: string[];
   tags?: string[];
-}): Omit<NormalizedWebtoon, 'updateDays'> & {
-  authors: string[];
-} => {
-  // Split authors by common delimiters like '/', ',', or '&'
-  const authors: string[] = webtoon.author
-    .split(/\s*[/,|&]\s*/)
-    .filter(Boolean);
+}): Omit<NormalizedWebtoon, 'updateDays'> => {
   return {
     title: webtoon.titleName,
     ageGrade: webtoon.adult ? 19 : 0,
-    authors,
+    authors: webtoon.author.split(/\s*[/,|&]\s*/).filter(Boolean),
     isEnd: webtoon.finish,
     isFree: true,
     id: `naver_${titleId}`,
