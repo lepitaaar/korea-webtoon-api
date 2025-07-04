@@ -176,7 +176,7 @@ export const getWebtoons = async (req: Request, res: Response) => {
     if (keyword) {
       const normalizedKeyword = keyword.replace(/\s+/g, '').toLowerCase();
       queryBuilder.andWhere(
-        '(LOWER(REPLACE(webtoon.title, " ", "")) LIKE :keyword OR LOWER(REPLACE(webtoon.authors, " ", "")) LIKE :keyword)',
+        "(LOWER(REPLACE(webtoon.title, ' ', '')) LIKE :keyword OR LOWER(REPLACE(webtoon.authors, ' ', '')) LIKE :keyword)",
         { keyword: `%${normalizedKeyword}%` },
       );
     }
