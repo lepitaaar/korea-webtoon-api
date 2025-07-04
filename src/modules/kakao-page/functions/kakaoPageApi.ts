@@ -6,7 +6,8 @@ const kakaoPageApi = axios.create({
   headers: {
     'Content-Type': 'application/json',
     //! User-Agent, Referer를 설정하지 않으면 403 에러 발생
-    'User-Agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+    'User-Agent':
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
     Referer: 'https://page.kakao.com',
   },
   timeout: 30_000,
@@ -15,8 +16,12 @@ const kakaoPageApi = axios.create({
 axiosRetry(kakaoPageApi, {
   retries: 3,
   retryDelay: (retryCount) => retryCount * 3_000,
-  onRetry: (retry, _, config) => {
+  retryCondition: (error) => {
+    return true;
+  },
+  onRetry: (retry, error, config) => {
     console.error(`🚧 [KAKAO_PAGE] ${config.url} - retry: ${retry}`);
+    console.error(`🚧 [KAKAO_PAGE] ${error}`);
   },
 });
 
@@ -119,17 +124,16 @@ interface GetContentHomeInfoResponse {
           title: string;
         }[];
         description: string;
-      }
-    }
-  }
+      };
+    };
+  };
 }
 
 export const getContentHomeInfo = (seriesId: number) => {
   return kakaoPageApi.post<GetContentHomeInfoResponse>('', {
     query: `\n    query contentHomeInfo($seriesId: Long!) {\n  contentHomeInfo(seriesId: $seriesId) {\n    about {\n      id\n      themeKeywordList {\n        uid\n        title\n        scheme\n      }\n      description\n      screenshotList\n      authorList {\n        id\n        name\n        role\n        roleDisplayName\n      }\n      detail {\n        id\n        publisherName\n        retailPrice\n        ageGrade\n        category\n        rank\n      }\n      guideTitle\n      characterList {\n        thumbnail\n        name\n        description\n      }\n      detailInfoList {\n        title\n        info\n      }\n    }\n    recommend {\n      id\n      seriesId\n      list {\n        ...ContentRecommendGroup\n      }\n    }\n  }\n}\n    \n    fragment ContentRecommendGroup on ContentRecommendGroup {\n  id\n  impLabel\n  type\n  title\n  description\n  items {\n    id\n    type\n    ...PosterViewItem\n  }\n}\n    \n\n    fragment PosterViewItem on PosterViewItem {\n  id\n  type\n  showPlayerIcon\n  scheme\n  title\n  altText\n  thumbnail\n  badgeList\n  labelBadgeList\n  ageGradeBadge\n  statusBadge\n  subtitleList\n  rank\n  rankVariation\n  ageGrade\n  selfCensorship\n  eventLog {\n    ...EventLogFragment\n  }\n  seriesId\n  showDimmedThumbnail\n  discountRate\n  discountRateText\n}\n    \n\n    fragment EventLogFragment on EventLog {\n  fromGraphql\n  click {\n    layer1\n    layer2\n    setnum\n    ordnum\n    copy\n    imp_id\n    imp_provider\n  }\n  eventMeta {\n    id\n    name\n    subcategory\n    category\n    series\n    provider\n    series_id\n    type\n  }\n  viewimp_contents {\n    type\n    name\n    id\n    imp_area_ordnum\n    imp_id\n    imp_provider\n    imp_type\n    layer1\n    layer2\n  }\n  customProps {\n    landing_path\n    view_type\n    helix_id\n    helix_yn\n    helix_seed\n    content_cnt\n    event_series_id\n    event_ticket_type\n    play_url\n    banner_uid\n  }\n}\n    `,
     variables: {
-      seriesId
-    }
-  })
-  
-}
+      seriesId,
+    },
+  });
+};
