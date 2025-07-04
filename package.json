@@ -12,6 +12,7 @@
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "p-limit": "^6.2.0",
+    "p-queue": "6",
     "reflect-metadata": "^0.2.2",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
@@ -21,7 +22,8 @@
     "typescript": "^5.4.5"
   },
   "scripts": {
-    "dev": "NODE_ENV=development && ts-node-dev --respawn --transpile-only -r tsconfig-paths/register ./src/index.ts",
+    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register ./src/index.ts",
+    "dev:debug": "ts-node-dev --respawn --transpile-only --inspect=4321 -r tsconfig-paths/register ./src/index.ts",
     "start": "ts-node -r tsconfig-paths/register src/index.ts"
   },
   "devDependencies": {
