@@ -24,11 +24,11 @@ const PORT = process.env.PORT || 4712;
 
   await AppDataSource.query(`
     CREATE VIEW normalized_webtoon AS
-    SELECT id, title, provider, updateDays, url, thumbnail, isEnd, isFree, isUpdated, ageGrade, freeWaitHour, authors FROM naver_webtoon
+    SELECT id, title, provider, updateDays, url, thumbnail, isEnd, isFree, isUpdated, ageGrade, freeWaitHour, authors, synopsis, genres, tags FROM naver_webtoon
     UNION ALL
-    SELECT id, title, provider, updateDays, url, thumbnail, isEnd, isFree, isUpdated, ageGrade, freeWaitHour, authors FROM kakao_webtoon
+    SELECT id, title, provider, updateDays, url, thumbnail, isEnd, isFree, isUpdated, ageGrade, freeWaitHour, authors, synopsis, genres, tags FROM kakao_webtoon
     UNION ALL
-    SELECT id, title, provider, updateDays, url, thumbnail, isEnd, isFree, isUpdated, ageGrade, freeWaitHour, authors FROM kakao_page_webtoon;
+    SELECT id, title, provider, updateDays, url, thumbnail, isEnd, isFree, isUpdated, ageGrade, freeWaitHour, authors, synopsis, genres, tags FROM kakao_page_webtoon;
   `);
 
   app.listen(PORT, () => {
@@ -47,7 +47,7 @@ const PORT = process.env.PORT || 4712;
 
   app.get(ROUTES.GET_WEBTOONS, getWebtoons);
 
-  app.get(ROUTES.GET_WEBTOON_INFO, getWebtoonInfo)
+  app.get(ROUTES.GET_WEBTOON_INFO, getWebtoonInfo);
 
   app.get('/', (_, res) => res.redirect(ROUTES.SWAGGER));
 })();
