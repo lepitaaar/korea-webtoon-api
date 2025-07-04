@@ -7,10 +7,10 @@ import {
   KakaoWebtoon,
   KakaoPageWebtoon,
 } from '@/database/entity';
-import type { Response, Request } from 'express';
+import { Request, Response } from 'express';
 
 interface CreateUpdateMethodProps {
-  provider: Exclude<Provider, 'RIDI'>;
+  provider: Provider;
   webtoonCrawler: () => Promise<NormalizedWebtoon[]>;
 }
 
@@ -33,19 +33,6 @@ export const createUpdateMethod =
       ? new Date().getTime() - updateStartAt.getTime() > SIX_HOURS
       : true;
 
-    // if (updateStartAt && !isOld) {
-    //   if (!dataInfo) {
-    //     return res.status(500);
-    //   }
-
-    //   return res.json({
-    //     ...dataInfo,
-    //     updateRunningTime: dataInfo.updateEndAt
-    //       ? (dataInfo.updateEndAt.getTime() - updateStartAt.getTime()) / 1_000
-    //       : (new Date().getTime() - updateStartAt.getTime()) / 1_000,
-    //   });
-    // }
-
     const updatingDataInfo = {
       ...dataInfo,
       provider,
@@ -65,15 +52,17 @@ export const createUpdateMethod =
 
         const webtoonList = await webtoonCrawler();
 
+        const processedWebtoons = webtoonList;
+
         const EntityTarget = {
           NAVER: NaverWebtoon,
           KAKAO: KakaoWebtoon,
           KAKAO_PAGE: KakaoPageWebtoon,
         }[provider];
 
-        for (let i = 0; i < webtoonList.length; i += BATCH_SIZE) {
+        for (let i = 0; i < processedWebtoons.length; i += BATCH_SIZE) {
           console.log(`🔍 [${provider}] ${i + 1} ~ ${i + BATCH_SIZE} 업데이트`);
-          const batch = webtoonList.slice(i, i + BATCH_SIZE);
+          const batch = processedWebtoons.slice(i, i + BATCH_SIZE);
           await connection.manager.save(EntityTarget, batch);
         }
 

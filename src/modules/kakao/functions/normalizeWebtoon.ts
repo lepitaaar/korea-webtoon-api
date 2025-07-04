@@ -8,7 +8,10 @@ interface NormalizeWebtoonProps {
 }
 
 export interface TempNormalizedWebtoon
-  extends Omit<NormalizedWebtoon, 'freeWaitHour' | 'id' | 'isFree' | 'authors' | 'authorString'> {
+  extends Omit<
+    NormalizedWebtoon,
+    'freeWaitHour' | 'id' | 'isFree' | 'authors' | 'authorString'
+  > {
   /**
    * @description 'undefined'는 티켓 정보를 확인후 추가
    */
@@ -18,7 +21,6 @@ export interface TempNormalizedWebtoon
    */
   id: number;
   authors: string[];
-  authorString: string;
 }
 
 const genreMapping = {
@@ -90,7 +92,6 @@ export const normalizeWebtoonList = ({
         `https://webtoon.kakao.com/content/${content.seoId}/${content.id}`,
       ),
       authors,
-      authorString: authors.sort().join(','),
       freeWaitHour,
       isEnd,
       isUpdated,
