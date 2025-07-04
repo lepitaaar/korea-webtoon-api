@@ -1,7 +1,6 @@
 import { Entity, Column, PrimaryColumn } from 'typeorm';
 
 export type UpdateDay = 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN';
-
 export type Provider = 'KAKAO' | 'NAVER' | 'KAKAO_PAGE' | 'RIDI';
 
 @Entity()
@@ -12,8 +11,8 @@ export class NormalizedWebtoon {
   @Column()
   title: string;
 
-  @Column()
-  provider: Provider;
+  @Column('simple-array')
+  provider: Provider[];
 
   @Column('simple-array')
   updateDays: UpdateDay[];
@@ -36,14 +35,11 @@ export class NormalizedWebtoon {
   @Column()
   ageGrade: number;
 
-  @Column({ nullable: true, type: 'int' })
-  freeWaitHour: number | null;
-
-  @Column('simple-array')
-  authors: string[];
-
   @Column({ nullable: true })
   synopsis?: string;
+
+  @Column('simple-array', { nullable: true })
+  authors: string[];
 
   @Column('simple-array', { nullable: true })
   genres?: string[];
