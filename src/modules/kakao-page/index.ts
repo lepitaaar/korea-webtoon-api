@@ -1,4 +1,4 @@
-import type { NormalizedWebtoon, Provider, UpdateDay } from '@/database/entity';
+import type { NormalizedWebtoon, UpdateDay } from '@/database/entity';
 import { getWebtoonList } from './functions/getWebtoonList';
 import {
   getContentHomeInfo,

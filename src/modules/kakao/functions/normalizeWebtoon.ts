@@ -8,7 +8,7 @@ interface NormalizeWebtoonProps {
 }
 
 export interface TempNormalizedWebtoon
-  extends Omit<NormalizedWebtoon, 'freeWaitHour' | 'id' | 'isFree'> {
+  extends Omit<NormalizedWebtoon, 'freeWaitHour' | 'id' | 'isFree' | 'authors' | 'authorString'> {
   /**
    * @description 'undefined'는 티켓 정보를 확인후 추가
    */
@@ -17,19 +17,20 @@ export interface TempNormalizedWebtoon
    * @description 티켓 정보 확인 시 필요해서 추후 prefix 추가
    */
   id: number;
+  authors: string[];
+  authorString: string;
 }
 
-const genreMapping = new Map([
-  ['rank_all', '실시간 랭킹'],
-  ['rank_fantasy_drama', '판타지 드라마'],
-  ['rank_romance', '로맨스'],
-  ['rank_school_action_fantasy', '학원/판타지'],
-  ['rank_romance_fantasy', '로맨스 판타지'],
-  ['rank_action_wuxia', '액션/무협'],
-  ['rank_drama', '드라마'],
-  ['rank_horror_thriller', '공포/스릴러'],
-  ['rank_comic_everyday_life', '코믹/일상'],
-]);
+const genreMapping = {
+  fantasy_drama: '판타지 드라마',
+  romance: '로맨스',
+  school_action_fantasy: '학원/판타지',
+  romance_fantasy: '로맨스 판타지',
+  action_wuxia: '액션/무협',
+  drama: '드라마',
+  horror_thriller: '공포/스릴러',
+  comic_everyday_life: '코믹/일상',
+};
 
 //! 카카오 웹툰은 동일한 형식으로 한번에 대량의 웹툰 정보를 응답함
 export const normalizeWebtoonList = ({
@@ -44,17 +45,21 @@ export const normalizeWebtoonList = ({
   ] = response.data;
 
   return cards.map(({ content, genreFilters }) => {
-    const authors = content.authors
-      .filter(({ type }) => {
-        switch (type) {
-          case 'AUTHOR':
-          case 'ILLUSTRATOR':
-            return true;
-          default:
-            return false;
-        }
-      })
-      .map(({ name }) => name);
+    const authors = Array.from(
+      new Set(
+        content.authors
+          .filter(({ type }) => {
+            switch (type) {
+              case 'AUTHOR':
+              case 'ILLUSTRATOR':
+                return true;
+              default:
+                return false;
+            }
+          })
+          .map(({ name }) => name),
+      ),
+    );
 
     let freeWaitHour: TempNormalizedWebtoon['freeWaitHour'];
 
@@ -85,6 +90,7 @@ export const normalizeWebtoonList = ({
         `https://webtoon.kakao.com/content/${content.seoId}/${content.id}`,
       ),
       authors,
+      authorString: authors.sort().join(','),
       freeWaitHour,
       isEnd,
       isUpdated,
@@ -94,8 +100,10 @@ export const normalizeWebtoonList = ({
         `${content.featuredCharacterImageB}.png`,
         `${content.backgroundImage}.jpg`,
       ],
-      provider: 'KAKAO',
-      genres: genreFilters.map((genre) => genreMapping[genre] || genre),
+      provider: ['KAKAO'],
+      genres: genreFilters
+        .slice(1)
+        .map((genre) => genreMapping[genre.toLowerCase()] || genre),
     };
   });
 };
