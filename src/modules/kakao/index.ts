@@ -11,7 +11,8 @@ import {
 } from './functions/normalizeWebtoon';
 
 const WEEKDAY_LIST = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const;
-const LIMIT_QUEUE = 10;
+
+const PQueue = require('p-queue').default;
 
 export const getKakaoWebtoonList = async () => {
   const originalWeeklyWebtoonsList = await Promise.all(
@@ -65,23 +66,37 @@ export const getKakaoWebtoonList = async () => {
       return [...weeklyWebtoonList, ...finishedWebtoon];
     });
 
-  const pLimit = (await import('p-limit')).default;
-  const limit = pLimit(LIMIT_QUEUE);
+  const queue = new PQueue({
+    concurrency: 100,
+    interval: 1000,
+    intervalCap: 100,
+    carryoverConcurrencyCount: true,
+  });
 
   const normalizedWebtoonList: NormalizedWebtoon[] = await Promise.all(
     tempNormalizedWebtoonList.map(
       ({ freeWaitHour, id: kakaoWebtoonId, ...webtoon }) =>
-        limit(async () => {
+        queue.add(async () => {
+          if (kakaoWebtoonId == 27) {
+            console.log('??');
+          }
           const id = `kakao_${kakaoWebtoonId}`;
-
-          if (freeWaitHour !== undefined)
-            return { id, ...webtoon, freeWaitHour, isFree: true };
-
-          const { data } = await getTicketInfo(kakaoWebtoonId);
 
           const { data: profileData } = (
             await getWebtoonProfile(kakaoWebtoonId)
           ).data;
+
+          if (freeWaitHour !== undefined)
+            return {
+              id,
+              ...webtoon,
+              freeWaitHour,
+              isFree: true,
+              tags: profileData.seoKeywords,
+              synopsis: profileData.synopsis,
+            };
+
+          const { data } = await getTicketInfo(kakaoWebtoonId);
 
           const waitInterval = data.data.waitForFree?.interval.replace(
             /\D/g,

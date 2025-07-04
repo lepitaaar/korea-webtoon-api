@@ -15,19 +15,25 @@ enum Weekday {
   일 = 'SUN',
 }
 
-const LIMIT_QUEUE = 100;
+const LIMIT_QUEUE = 50;
+
+const PQueue = require('p-queue').default;
 
 export const getKakaoPageWebtoonList = async (): Promise<
   NormalizedWebtoon[]
 > => {
   const webtoonList = await getWebtoonList();
 
-  const pLimit = (await import('p-limit')).default;
-  const limit = pLimit(LIMIT_QUEUE);
+  const queue = new PQueue({
+    concurrency: 10,
+    interval: 1000,
+    intervalCap: 20,
+    carryoverConcurrencyCount: true,
+  });
 
-  return Promise.all(
+  const results: NormalizedWebtoon[] = await Promise.all(
     webtoonList.map(({ seriesId, ...webtoon }) =>
-      limit(async () => {
+      queue.add(async () => {
         const { content } = (await getContentHomeOverview(seriesId)).data.data
           .contentHomeOverview;
 
@@ -51,7 +57,7 @@ export const getKakaoPageWebtoonList = async (): Promise<
 
         return {
           id,
-          provider: 'KAKAO_PAGE' as Provider,
+          provider: ['KAKAO_PAGE'],
           title: content.title,
           url: `https://page.kakao.com/content/${seriesId}`,
           updateDays,
@@ -76,4 +82,6 @@ export const getKakaoPageWebtoonList = async (): Promise<
       }),
     ),
   );
+
+  return results;
 };

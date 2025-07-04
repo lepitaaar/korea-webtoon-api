@@ -1,4 +1,6 @@
-import type { NormalizedWebtoon } from '@/database/entity';
+import { NormalizedWebtoon } from '@/database/entity';
+import { Author } from '@/database/author.entity';
+import { AppDataSource } from '@/database/datasource';
 import {
   getDailyPlusWebtoonList,
   getFinishedWebtoonList,
@@ -6,6 +8,8 @@ import {
 } from './functions/naverApi';
 import { normalizeWebtoon } from './functions/normalizeWebtoon';
 import { getWebtoonDetail } from './functions/naverApi';
+
+const PQueue = require('p-queue').default;
 
 enum Weekday {
   MONDAY = 'MON',
@@ -17,15 +21,33 @@ enum Weekday {
   SUNDAY = 'SUN',
 }
 
-const LIMIT_QUEUE = 50;
-let queue = 0;
-
 export const getNaverWebtoonList = async () => {
   const weeklyWebtoonMap = new Map<number, NormalizedWebtoon>();
 
   const {
     data: { titleListMap: weeklyWebtoonTitleMap },
   } = await getweeklyWebtoonList();
+
+  const queue = new PQueue({
+    concurrency: 50,
+    interval: 1000,
+    intervalCap: 50,
+    carryoverConcurrencyCount: true,
+  });
+
+  const processAuthors = async (authorNames: string[]): Promise<Author[]> => {
+    const authorRepository = AppDataSource.getRepository(Author);
+    const authors: Author[] = [];
+    for (const name of authorNames) {
+      let author = await authorRepository.findOne({ where: { name } });
+      if (!author) {
+        author = authorRepository.create({ name });
+        await authorRepository.save(author);
+      }
+      authors.push(author);
+    }
+    return authors;
+  };
 
   for (const weekday in weeklyWebtoonTitleMap) {
     const _weekday = weekday as keyof typeof weeklyWebtoonTitleMap;
@@ -37,27 +59,23 @@ export const getNaverWebtoonList = async () => {
       //! 각 요일에 중복된 웹툰이 노출될수 있음
       if (duplicatedWebtoon) {
         duplicatedWebtoon.updateDays?.push(Weekday[_weekday]);
+        continue;
       }
 
       const updateDay = Weekday[_weekday];
 
-      if (queue > LIMIT_QUEUE) {
-        await new Promise<void>((resolve) =>
-          setInterval(() => {
-            if (queue <= LIMIT_QUEUE) resolve();
-          }, 1_000),
-        );
-      }
-      queue += 1;
-      const extra = await getWebtoonDetail(titleId);
-      queue -= 1;
+      const extra = await queue.add(() => getWebtoonDetail(titleId));
+
+      const normalized = normalizeWebtoon({
+        ...webtoon,
+        titleId,
+        ...extra,
+      });
+      const authors = await processAuthors(normalized.authors);
 
       weeklyWebtoonMap.set(titleId, {
-        ...normalizeWebtoon({
-          ...webtoon,
-          titleId,
-          ...extra
-        }),
+        ...normalized,
+        authors,
         updateDays: [updateDay],
       });
     }
@@ -71,21 +89,15 @@ export const getNaverWebtoonList = async () => {
 
   const dailyPlusWebtoonList: NormalizedWebtoon[] = await Promise.all(
     dailyPlusWebtoonTitleList.map(async (webtoon) => {
-      if (queue > LIMIT_QUEUE) {
-        await new Promise<void>((resolve) =>
-          setInterval(() => {
-            if (queue <= LIMIT_QUEUE) resolve();
-          }, 1_000),
-        );
-      }
-      queue += 1;
-      const extra = await getWebtoonDetail(webtoon.titleId);
-      queue -= 1;
+      const extra = await queue.add(() => getWebtoonDetail(webtoon.titleId));
+      const normalized = normalizeWebtoon({ ...webtoon, ...extra });
+      const authors = await processAuthors(normalized.authors);
       return {
-        ...normalizeWebtoon({ ...webtoon, ...extra }),
+        ...normalized,
+        authors,
         updateDays: [],
       };
-    })
+    }),
   );
 
   const finishedWebtoonList: NormalizedWebtoon[] = [];
@@ -99,21 +111,15 @@ export const getNaverWebtoonList = async () => {
 
     const finished = await Promise.all(
       titleList.map(async (webtoon) => {
-        if (queue > LIMIT_QUEUE) {
-          await new Promise<void>((resolve) =>
-            setInterval(() => {
-              if (queue <= LIMIT_QUEUE) resolve();
-            }, 1_000),
-          );
-        }
-        queue += 1;
-        const extra = await getWebtoonDetail(webtoon.titleId);
-        queue -= 1;
+        const extra = await queue.add(() => getWebtoonDetail(webtoon.titleId));
+        const normalized = normalizeWebtoon({ ...webtoon, ...extra });
+        const authors = await processAuthors(normalized.authors);
         return {
-          ...normalizeWebtoon({ ...webtoon, ...extra }),
+          ...normalized,
+          authors,
           updateDays: [],
         };
-      })
+      }),
     );
     finishedWebtoonList.push(...finished);
   }
