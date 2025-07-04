@@ -1,6 +1,4 @@
 import { NormalizedWebtoon } from '@/database/entity';
-import { Author } from '@/database/author.entity';
-import { AppDataSource } from '@/database/datasource';
 import {
   getDailyPlusWebtoonList,
   getFinishedWebtoonList,
@@ -35,20 +33,6 @@ export const getNaverWebtoonList = async () => {
     carryoverConcurrencyCount: true,
   });
 
-  const processAuthors = async (authorNames: string[]): Promise<Author[]> => {
-    const authorRepository = AppDataSource.getRepository(Author);
-    const authors: Author[] = [];
-    for (const name of authorNames) {
-      let author = await authorRepository.findOne({ where: { name } });
-      if (!author) {
-        author = authorRepository.create({ name });
-        await authorRepository.save(author);
-      }
-      authors.push(author);
-    }
-    return authors;
-  };
-
   for (const weekday in weeklyWebtoonTitleMap) {
     const _weekday = weekday as keyof typeof weeklyWebtoonTitleMap;
     const weekdayWebtoonList = weeklyWebtoonTitleMap[_weekday];
@@ -71,11 +55,9 @@ export const getNaverWebtoonList = async () => {
         titleId,
         ...extra,
       });
-      const authors = await processAuthors(normalized.authors);
-
+      // authors는 string[] 그대로 사용
       weeklyWebtoonMap.set(titleId, {
         ...normalized,
-        authors,
         updateDays: [updateDay],
       });
     }
@@ -91,10 +73,8 @@ export const getNaverWebtoonList = async () => {
     dailyPlusWebtoonTitleList.map(async (webtoon) => {
       const extra = await queue.add(() => getWebtoonDetail(webtoon.titleId));
       const normalized = normalizeWebtoon({ ...webtoon, ...extra });
-      const authors = await processAuthors(normalized.authors);
       return {
         ...normalized,
-        authors,
         updateDays: [],
       };
     }),
@@ -113,10 +93,8 @@ export const getNaverWebtoonList = async () => {
       titleList.map(async (webtoon) => {
         const extra = await queue.add(() => getWebtoonDetail(webtoon.titleId));
         const normalized = normalizeWebtoon({ ...webtoon, ...extra });
-        const authors = await processAuthors(normalized.authors);
         return {
           ...normalized,
-          authors,
           updateDays: [],
         };
       }),
